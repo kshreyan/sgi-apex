@@ -18,7 +18,7 @@ historical admissions → clean (silver) → programme forecast → seat-fill pr
 | Capability | Where |
 |---|---|
 | Entity registry with sources and confidence. Group roll-ups blocked on unresolved entities | `configs/entities/`, `src/sgi_apex/entities/`, [`docs/entity_registry.md`](docs/entity_registry.md) |
-| Bronze/silver/gold pipeline with a data-quality score on every forecast | `src/sgi_apex/data/` |
+| Bronze/silver/gold pipeline with a data-quality score on every forecast. Real-export adapter with a validation report | `src/sgi_apex/data/`, [`docs/data_ingest.md`](docs/data_ingest.md) |
 | Four models (`seasonal_naive`, `pace_own`, `pace_pooled`, `bayes_blend`) with champion/challenger roles | `src/sgi_apex/forecasting/admissions/models.py` |
 | Correlated Monte Carlo draws (group, campus, programme). Hierarchy agrees by construction | `engine.py` |
 | Rolling-origin backtest, 2025 lockbox, CRPS/coverage/Brier/reliability | `backtest.py`, `scoring.py` |
@@ -33,7 +33,7 @@ historical admissions → clean (silver) → programme forecast → seat-fill pr
 ```bash
 python -m venv .venv && source .venv/bin/activate
 make setup
-make test          # 22 tests: unit, leakage, forecasting
+make test          # 33 tests: unit, leakage, forecasting
 make all           # full loop → artifacts/ + site/data/
 make serve         # http://localhost:8000
 ```
@@ -42,6 +42,7 @@ CLI:
 
 ```bash
 sgi run | chairman-brief | registry | ingest | forecast admissions | risks | decisions | backtest
+sgi ingest --file export.csv [--finals finals.csv] [--dry-run]   # real admissions export → validated silver
 ```
 
 `sgi institution-health | simulate | benchmark | expansion-screen` are registered but intentionally exit with "planned".
@@ -66,10 +67,9 @@ sgi run | chairman-brief | registry | ingest | forecast admissions | risks | dec
 
 ## Switching to real data
 
-Replace the body of `pipeline.ingest()` with a reader for the admissions export. The columns are `programme_id, admission_year, cycle_week, enquiries_cum, applications_cum, enrolled_cum, source`. Then:
-1. Update intakes in `configs/entities/programmes.csv`.
-2. Set `DATA_MODE` in `config.py`.
-3. Deploy privately, never to public Pages (see [`docs/privacy_security.md`](docs/privacy_security.md)).
+1. Update intakes in `configs/entities/programmes.csv` from the approval letters.
+2. Run `sgi ingest --file <export> --finals <registrar finals> --dry-run`. Fix every ERROR, review the WARNs, then run again without `--dry-run`. Accepted formats and rules are in [`docs/data_ingest.md`](docs/data_ingest.md).
+3. Forecasting on that silver table is the next build step. Real outputs go to a private deployment, never to public Pages (see [`docs/privacy_security.md`](docs/privacy_security.md)).
 
 ## Repository layout
 

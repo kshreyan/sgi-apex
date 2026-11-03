@@ -11,6 +11,7 @@ dependencies = ["numpy>=1.26", "pandas>=2.1", "pyarrow>=14"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.5"]
+excel = ["openpyxl>=3.1"]
 
 [project.scripts]
 sgi = "sgi_apex.cli:main"

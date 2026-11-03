@@ -13,7 +13,8 @@ def score_programme(snap: pd.DataFrame, intake: int, year: int, week: int) -> di
     """Score one programme's snapshot as of (year, week). Each check is 0..1."""
     cur = snap[snap.admission_year == year].sort_values("cycle_week")
     expected_weeks = week + 1
-    completeness = min(1.0, cur.cycle_week.nunique() / expected_weeks) if expected_weeks else 1.0
+    observed = cur[~cur.imputed] if "imputed" in cur else cur  # carried-forward weeks are not observations
+    completeness = min(1.0, observed.cycle_week.nunique() / expected_weeks) if expected_weeks else 1.0
     freshness = 1.0 if (not cur.empty and cur.cycle_week.max() >= week) else 0.0
     monotone = all((cur[c].diff().dropna() >= 0).all() for c in ("enquiries_cum", "applications_cum", "enrolled_cum"))
     within_cap = bool((cur.enrolled_cum <= intake).all())

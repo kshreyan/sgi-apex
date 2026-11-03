@@ -7,24 +7,40 @@ Silver: canonical, validated funnel table keyed by programme/year/week.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pandas as pd
 
 from sgi_apex import config
-from sgi_apex.data import synthetic
+from sgi_apex.data import adapters, synthetic
 from sgi_apex.entities import registry
 
 SILVER_ADMISSIONS = config.SILVER / "admissions_funnel.parquet"
 
 
 def ingest() -> pd.DataFrame:
-    """Write a bronze snapshot. Real deployments swap the synthetic call for an ERP export reader."""
+    """Synthetic demo history -> bronze snapshot."""
     programmes = registry.load_programmes()
     raw = synthetic.generate(programmes)
     raw["ingestion_time"] = datetime.now(UTC).isoformat(timespec="seconds")
     config.BRONZE.mkdir(parents=True, exist_ok=True)
     raw.to_parquet(config.BRONZE / "admissions_synthetic.parquet", index=False)
     return raw
+
+
+def ingest_file(path: Path, live_year: int = config.LIVE_YEAR) -> tuple[pd.DataFrame, list[adapters.Issue], str]:
+    """Admissions-office export -> immutable bronze copy + canonical funnel. Raises IngestError on blocking issues."""
+    programmes = registry.load_programmes()
+    sha = adapters.file_sha256(path)
+    raw = adapters.read_file(path)
+    config.BRONZE.mkdir(parents=True, exist_ok=True)
+    bronze = config.BRONZE / f"admissions_export_{sha[:16]}.parquet"
+    if not bronze.exists():  # content-addressed: same bytes, same snapshot; never rewritten
+        raw.assign(source_file=Path(path).name, file_sha256=sha,
+                   ingestion_time=datetime.now(UTC).isoformat(timespec="seconds")).to_parquet(bronze, index=False)
+    funnel, issues = adapters.parse(raw, programmes, live_year)
+    funnel["source"] = f"export:{Path(path).name}@{sha[:12]}"
+    return funnel, issues, sha
 
 
 def to_silver(raw: pd.DataFrame) -> pd.DataFrame:

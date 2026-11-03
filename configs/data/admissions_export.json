@@ -1,0 +1,18 @@
+{
+  "_doc": "Maps an ERP/admissions-office export onto the canonical funnel columns. Keys are canonical names; values are header spellings accepted (case/space-insensitive). See docs/data_ingest.md.",
+  "columns": {
+    "programme_id": ["programme_id", "program_id", "course_code"],
+    "programme": ["programme", "program", "course", "course_name"],
+    "campus": ["campus", "location", "centre"],
+    "admission_year": ["admission_year", "session", "academic_year", "year"],
+    "cycle_week": ["cycle_week", "week"],
+    "as_of_date": ["as_of_date", "report_date", "date", "snapshot_date"],
+    "enquiries_cum": ["enquiries_cum", "enquiries", "inquiries", "leads"],
+    "applications_cum": ["applications_cum", "applications", "forms", "forms_sold"],
+    "enrolled_cum": ["enrolled_cum", "enrolled", "admitted", "admissions", "fee_paid"]
+  },
+  "programme_aliases": {
+    "_doc": "Extra spellings -> programme_id, e.g. \"bsc nursing|siwan\": \"SIW-BSCN\". Name-only keys work when the name is unique.",
+    "b.ed|siwan": "SIW-BED"
+  }
+}

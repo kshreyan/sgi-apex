@@ -4,7 +4,7 @@
 |---|---|---|
 | 0 (done) | Repo, entity registry from public sources, synthetic end-to-end admissions loop, control tower on Pages | `make test` green; site live |
 | 1–2 | Discovery interviews with the owners in `data_availability.md`. Collect approval letters; fix intakes; close registry open questions; verify hospital | All `programmes.csv` intakes sourced to a letter; registry confidence ≥ medium everywhere except items under investigation |
-| 2–4 | **Real admissions ingest**: CSV/Excel adapter for ≥5 past cycles (weekly cumulative enquiries/applications/enrolments). Pandera schema. DQ report | Silver table reconciles to final enrolment per institution within ±1 |
+| 2–4 | **Real admissions ingest** (tooling done: `sgi ingest --file`, see `data_ingest.md`; awaiting export): CSV/Excel adapter for ≥5 past cycles (weekly cumulative enquiries/applications/enrolments). Schema + value checks. DQ report | Silver table reconciles to final enrolment per institution within ±1 |
 | 4–5 | Re-run backtest on real data. Freeze the first real prospective forecast. Set alert thresholds with the Head of Admissions | Champion chosen out of sample; lockbox scored once |
 | 5–6 | Private deployment: Postgres + FastAPI + SSO. Site served behind login for real data; public site stays synthetic | Security checklist in `privacy_security.md` passed |
 | 6–8 | Decision workflow live: DG/HoA propose, chairman decides, outcomes logged. First geo or channel experiment to measure counselling uplift | ≥1 real decision in register with owner and deadline |

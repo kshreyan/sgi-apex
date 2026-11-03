@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from sgi_apex import config
 
@@ -40,10 +41,44 @@ def cmd_registry(_):
     print("\nReconciliation:", "OK" if not problems else problems)
 
 
-def cmd_ingest(_):
+def cmd_ingest(args):
     from sgi_apex.data import pipeline
-    df = pipeline.to_silver(pipeline.ingest())
-    print(f"silver rows: {len(df):,} ({df.programme_id.nunique()} programmes, source={df.source.unique().tolist()})")
+    if not args.file:
+        df = pipeline.to_silver(pipeline.ingest())
+        print(f"silver rows: {len(df):,} ({df.programme_id.nunique()} programmes, source={df.source.unique().tolist()})")
+        return
+    import pandas as pd
+
+    from sgi_apex.data import adapters, quality
+    from sgi_apex.entities import registry
+    try:
+        funnel, issues, sha = pipeline.ingest_file(args.file, args.live_year)
+    except adapters.IngestError as e:
+        print(adapters.issues_frame(e.issues).to_string(index=False))
+        sys.exit(f"\nINGEST BLOCKED — {e}")
+    if args.finals:
+        issues += adapters.reconcile_finals(funnel, pd.read_csv(args.finals), registry.load_programmes(), args.tol)
+    intake = registry.load_programmes().set_index("programme_id").sanctioned_intake
+    dq = []
+    for pid, g in funnel.groupby("programme_id"):
+        year = int(g.admission_year.max())
+        week = int(g[g.admission_year == year].cycle_week.max())
+        s = quality.score_programme(g, int(intake[pid]), year, week)
+        dq.append({"programme_id": pid, "year": year, "week": week, "score": s["score"], "hold": s["hold"]})
+    dq = pd.DataFrame(dq)
+    report = adapters.report_markdown(args.file, sha, funnel, issues, dq)
+    out = config.DATA / "reports" / f"ingest_{sha[:12]}.md"  # data/ is git-ignored: real figures never get committed
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(report)
+    print(report)
+    errors = [i for i in issues if i.severity == "ERROR"]
+    if errors:
+        sys.exit(f"INGEST BLOCKED — {len(errors)} error(s). Report: {out}")
+    if args.dry_run:
+        print(f"dry run: silver not written. Report: {out}")
+        return
+    pipeline.to_silver(funnel)
+    print(f"silver written: {pipeline.SILVER_ADMISSIONS} · report: {out}")
 
 
 def cmd_forecast(args):
@@ -89,7 +124,13 @@ def main(argv=None):
     sub.add_parser("run", help="run the full milestone-1 loop and build site data").set_defaults(fn=cmd_run)
     sub.add_parser("chairman-brief").set_defaults(fn=cmd_brief)
     sub.add_parser("registry", help="validate and print the entity registry").set_defaults(fn=cmd_registry)
-    sub.add_parser("ingest").set_defaults(fn=cmd_ingest)
+    ing = sub.add_parser("ingest", help="synthetic demo data, or --file an admissions-office export")
+    ing.add_argument("--file", type=Path, help="CSV/XLSX export (see docs/data_ingest.md)")
+    ing.add_argument("--finals", type=Path, help="CSV of programme_id,admission_year,final_enrolled to reconcile")
+    ing.add_argument("--tol", type=int, default=1, help="reconciliation tolerance per institution-year")
+    ing.add_argument("--live-year", type=int, default=config.LIVE_YEAR, help="cycle still in progress")
+    ing.add_argument("--dry-run", action="store_true", help="validate and report only")
+    ing.set_defaults(fn=cmd_ingest)
     f = sub.add_parser("forecast")
     f.add_argument("target", choices=["admissions", "cash"])
     f.set_defaults(fn=cmd_forecast)
