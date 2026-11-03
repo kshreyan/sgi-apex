@@ -1,0 +1,11 @@
+{
+  "_note": "Role-based access model (docs/privacy_security.md). Enforced by the API layer once real data is connected.",
+  "roles": {
+    "chairman": {"read": ["gold:*", "decisions:*"], "write": ["decisions:decide"]},
+    "director_general": {"read": ["gold:*", "decisions:*"], "write": ["decisions:propose", "overrides:*"]},
+    "institution_head": {"read": ["gold:own_institution"], "write": ["overrides:own_institution"]},
+    "admissions_head": {"read": ["silver:admissions", "gold:admissions"], "write": ["overrides:admissions"]},
+    "analyst": {"read": ["silver:deidentified", "gold:*"], "write": []}
+  },
+  "never_in_analytics": ["student_pii", "patient_identifiable", "employee_pii", "bank_credentials"]
+}

@@ -1,0 +1,16 @@
+programme_id,programme,entity_id,institution,campus,level,sanctioned_intake,intake_source,target_fill
+SIW-BED,B.Ed,SIE-EDU,Subhwanti School of Education,Siwan,PG-professional,100,third-party (Careers360),0.95
+SIW-DELED,D.El.Ed,SIE-EDU,Subhwanti School of Education,Siwan,diploma,50,PLACEHOLDER,0.95
+SIW-BSCN,B.Sc Nursing,SIE-NUR,Subhwanti School of Nursing,Siwan,UG,60,PLACEHOLDER,0.95
+SIW-GNM,GNM,SIE-NUR,Subhwanti School of Nursing,Siwan,diploma,60,PLACEHOLDER,0.95
+SIW-ANM,ANM,SIE-NUR,Subhwanti School of Nursing,Siwan,diploma,40,PLACEHOLDER,0.90
+SIW-BBA,BBA,SIE-SISM,SISM Siwan,Siwan,UG,60,PLACEHOLDER,0.90
+SIW-BCA,BCA,SIE-SISM,SISM Siwan,Siwan,UG,60,PLACEHOLDER,0.90
+BET-DPHARM,D.Pharm,SIPE-PHA,Subhwanti School of Pharmacy,Bettiah,diploma,60,third-party (Careers360),0.95
+BET-BPHARM,B.Pharm,SIPE-PHA,Subhwanti School of Pharmacy,Bettiah,UG,100,third-party (Careers360),0.95
+BET-MPHARM,M.Pharm,SIPE-PHA,Subhwanti School of Pharmacy,Bettiah,PG,15,PLACEHOLDER,0.80
+BET-LLB,LLB,SIPE-LAW,Subhwanti School of Law,Bettiah,UG-professional,60,PLACEHOLDER,0.90
+BET-MBA,MBA,SIPE-SISM,SISM Bettiah,Bettiah,PG,60,PLACEHOLDER,0.85
+BET-DIP,Diploma (Engineering),HTPC,Hi-Tech Polytechnic College,Bettiah,diploma,180,PLACEHOLDER,0.90
+BET-BTECH-CSE,B.Tech CSE,HTEC,Hi-Tech Engineering College,Bettiah,UG,60,PLACEHOLDER,0.90
+BET-BTECH-CE,B.Tech Civil,HTEC,Hi-Tech Engineering College,Bettiah,UG,60,PLACEHOLDER,0.85

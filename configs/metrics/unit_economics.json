@@ -1,0 +1,10 @@
+{
+  "_status": "PLACEHOLDER — replace with finance-approved contribution per enrolled student over the full programme (INR, undiscounted, net of variable cost). Not real SGI figures.",
+  "contribution_per_seat_inr": {
+    "diploma": 90000,
+    "UG": 200000,
+    "UG-professional": 165000,
+    "PG": 140000,
+    "PG-professional": 100000
+  }
+}

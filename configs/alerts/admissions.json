@@ -1,0 +1,6 @@
+{
+  "red_p_below": 0.40,
+  "amber_p_below": 0.75,
+  "min_shortfall_seats": 3,
+  "min_shortfall_share": 0.05
+}

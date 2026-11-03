@@ -1,0 +1,16 @@
+{
+  "admissions_final_enrolment": {
+    "purpose": "Forecast final enrolment and seat-fill probability per programme during the admission cycle",
+    "owner": "Head of Admissions (business) / APEX analytics lead (technical)",
+    "data": "silver.admissions_funnel (weekly cumulative enquiries, applications, enrolments)",
+    "target": "max enrolled_cum at end of cycle (week 26)",
+    "training": "all completed cycles before the forecast year (snapshot-gated)",
+    "validation": "rolling origin over 2020-2024, weeks 2-22",
+    "lockbox": "2025, scored once",
+    "metrics": ["CRPS / intake", "MAE / intake", "50% & 90% coverage", "Brier", "log loss"],
+    "limitations": "No external drivers yet (competitor fees, counselling dates, BSCC approvals). Synthetic demo data only.",
+    "fairness_review": "Programme-level aggregate model; no individual-level predictions, so no cohort fairness exposure.",
+    "version": "0.1.0",
+    "review_date": "2027-02-01"
+  }
+}

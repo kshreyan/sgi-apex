@@ -1,0 +1,20 @@
+{
+  "recorded_at": "2026-11-03T10:40:33+00:00",
+  "actuals": {
+    "BET-BPHARM": 100,
+    "BET-BTECH-CE": 36,
+    "BET-BTECH-CSE": 60,
+    "BET-DIP": 180,
+    "BET-DPHARM": 60,
+    "BET-LLB": 60,
+    "BET-MBA": 60,
+    "BET-MPHARM": 15,
+    "SIW-ANM": 29,
+    "SIW-BBA": 60,
+    "SIW-BCA": 60,
+    "SIW-BED": 99,
+    "SIW-BSCN": 60,
+    "SIW-DELED": 45,
+    "SIW-GNM": 60
+  }
+}

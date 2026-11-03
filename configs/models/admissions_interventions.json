@@ -1,0 +1,9 @@
+{
+  "_status": "ASSUMPTIONS — uplift ranges are priors to be replaced by SGI's own experiment results (PART XVIII/XIX). Uplift applies to enrolments still expected after the decision date.",
+  "options": [
+    {"id": "do_nothing", "label": "Do nothing", "cost_inr": 0, "uplift_low": 0.0, "uplift_high": 0.0, "min_weeks_left": 0},
+    {"id": "counselling_team", "label": "Dedicated counselling-conversion team (call-back within 24h on every application)", "cost_inr": 250000, "uplift_low": 0.06, "uplift_high": 0.18, "min_weeks_left": 4},
+    {"id": "school_outreach", "label": "Feeder-school outreach in top-5 lead districts", "cost_inr": 300000, "uplift_low": 0.04, "uplift_high": 0.15, "min_weeks_left": 8},
+    {"id": "need_scholarship", "label": "Need-based scholarship pool (10% fee waiver, capped)", "cost_inr": 450000, "uplift_low": 0.08, "uplift_high": 0.22, "min_weeks_left": 2}
+  ]
+}
