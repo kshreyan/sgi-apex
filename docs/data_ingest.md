@@ -55,6 +55,37 @@ Filled-in weeks do not count as observations in the data-quality completeness ch
 
 All of `data/` is git-ignored. Real figures must never be committed to this public repository or published on the public Pages site (see `privacy_security.md`).
 
-## Not yet wired
+## Forecasting on real data
 
-`sgi run` still rebuilds the public demo from synthetic data. Running the forecast loop on a real silver table is weeks 4–5 of the 90-day plan. That step needs a private output location for the site data and the lockbox, so that real forecasts are never pushed to Pages.
+```bash
+sgi run --real --out ~/sgi-private            # or --out data/private_run (git-ignored)
+sgi run --real --out ~/sgi-private --as-of-week 8   # replay an earlier week
+python -m http.server -d ~/sgi-private/site 8000    # view the private control tower
+```
+
+A real run reads the silver table written by `sgi ingest --file` and works out its settings from the data:
+
+| Setting | Rule |
+|---|---|
+| Live cycle | The latest `admission_year` in the data |
+| As-of week | The last week actually observed in that cycle, not a filled-in one. `--as-of-week` overrides it |
+| Lockbox year | The last closed cycle. It is scored once and never used to choose a model |
+| Validation years | Up to 5 closed cycles before the lockbox year. Each needs at least 2 earlier cycles behind it |
+| Minimum history | 4 closed cycles, otherwise the run stops |
+| Excluded programmes | Programmes with no rows in the live cycle, or no history. They are listed in the output, not forecast |
+
+Everything is written under `--out`:
+- the lockbox
+- the decision register
+- backtests
+- the chairman's brief
+- a copy of the control tower with a "confidential" banner
+
+**Guards**
+- `--real` without `--out` is refused.
+- An `--out` inside the repo is refused, except under the git-ignored `data/`.
+- A silver table that still holds synthetic rows is refused.
+
+The public `site/` and `artifacts/` are never touched. The lockbox applies inside the private folder too: re-running the same week on the same data reproduces the frozen forecast, but a changed forecast for an already-frozen week is refused.
+
+Serving the private site to the chairman's office needs a login in front of it. That is weeks 5–6 of the plan (see `privacy_security.md`).

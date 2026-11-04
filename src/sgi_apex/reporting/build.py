@@ -9,7 +9,10 @@ from __future__ import annotations
 
 import json
 import math
+import re
+import shutil
 from datetime import date, timedelta
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -41,11 +44,12 @@ def _round(obj):
     return obj
 
 
-def run_backtests(silver, programmes):
+def run_backtests(silver, programmes, validation_years=config.VALIDATION_YEARS, lockbox_years=config.LOCKBOX_YEARS,
+                  horizon_week=config.LIVE_AS_OF_WEEK):
     config.BACKTESTS.mkdir(parents=True, exist_ok=True)
-    val = backtest.run(silver, programmes, config.VALIDATION_YEARS)
-    champion, selection = backtest.select_champion(val, horizon_week=config.LIVE_AS_OF_WEEK)
-    lock = backtest.run(silver, programmes, config.LOCKBOX_YEARS)
+    val = backtest.run(silver, programmes, validation_years)
+    champion, selection = backtest.select_champion(val, horizon_week=horizon_week)
+    lock = backtest.run(silver, programmes, lockbox_years)
     val.to_parquet(config.BACKTESTS / "admissions_validation.parquet", index=False)
     lock.to_parquet(config.BACKTESTS / "admissions_lockbox.parquet", index=False)
     return val, lock, champion, selection
@@ -134,21 +138,89 @@ def health_score(fc) -> float:
     return float(100 * (w * p).sum() / w.sum())
 
 
-def run() -> dict:
+MIN_PRIOR_YEARS = 2  # closed cycles a backtest year needs behind it
+
+
+def plan_real_run(silver, programmes, as_of_week=None) -> dict:
+    """Live year/week and backtest years from the data itself, not from the demo constants."""
+    year = int(silver.admission_year.max())
+    cur = silver[silver.admission_year == year]
+    observed = cur[~cur.imputed] if "imputed" in cur else cur
+    week = int(observed.cycle_week.max()) if as_of_week is None else as_of_week
+    if not 0 <= week <= config.CYCLE_WEEKS:
+        raise SystemExit(f"as-of week {week} outside 0..{config.CYCLE_WEEKS}")
+    closed = sorted(int(y) for y in silver.admission_year.unique() if y < year)
+    usable = closed[MIN_PRIOR_YEARS:]
+    if len(usable) < 2:
+        raise SystemExit(f"need ≥{MIN_PRIOR_YEARS + 2} closed cycles before {year} to backtest; have {len(closed)} "
+                         f"({closed}). Load more history.")
+    live_ids = set(silver[silver.admission_year == year].programme_id)
+    hist_ids = set(silver[silver.admission_year < year].programme_id)
+    keep = programmes.programme_id.isin(live_ids & hist_ids)
+    return {"year": year, "week": week, "lockbox_years": (usable[-1],), "validation_years": tuple(usable[:-1][-5:]),
+            "programmes": programmes[keep].reset_index(drop=True),
+            "excluded": sorted(set(programmes.programme_id) - set(programmes[keep].programme_id))}
+
+
+def _check_private(out: Path) -> Path:
+    out = Path(out).resolve()
+    inside_repo = out == config.ROOT or config.ROOT in out.parents
+    if inside_repo and config.DATA not in (out, *out.parents):
+        raise SystemExit(f"refusing to write real-data outputs to {out}: inside the public repo. "
+                         "Use a folder outside it, or under data/ (git-ignored).")
+    return out
+
+
+def _copy_site_shell(out: Path, real: bool) -> None:
+    """Page + assets for an out-of-repo build. The data comes from the run, never from the public demo."""
+    (out / "site").mkdir(parents=True, exist_ok=True)
+    shutil.copytree(config.ROOT / "site" / "assets", out / "site" / "assets", dirs_exist_ok=True)
+    html = (config.ROOT / "site" / "index.html").read_text()
+    if real:
+        html = re.sub(r'<div class="demo-banner".*?</div>', '<div class="demo-banner" role="note"><strong>Real SGI data '
+                      '— confidential.</strong> Internal use only. Do not publish or forward.</div>', html, flags=re.DOTALL)
+        html = html.replace("(synthetic demo data)", "(confidential internal build)")
+    (out / "site" / "index.html").write_text(html)
+
+
+def run(real: bool = False, out: Path | None = None, as_of_week: int | None = None) -> dict:
+    """Synthetic demo (default) or a real run on the ingested silver table into a private folder."""
     reg = registry.load_registry()
     programmes = registry.load_programmes()
     problems = registry.reconcile(reg, programmes)
     if problems:
         raise SystemExit("entity reconciliation failed — group reporting blocked:\n" + "\n".join(problems))
-    registry.write_master(reg)
 
-    silver = pipeline.to_silver(pipeline.ingest())
-    val, lock, champion, selection = run_backtests(silver, programmes)
-    year, week = config.LIVE_YEAR, config.LIVE_AS_OF_WEEK
+    excluded = []
+    if real:
+        if out is None:
+            raise SystemExit("a real-data run needs --out <private folder>")
+        if not pipeline.SILVER_ADMISSIONS.exists():
+            raise SystemExit("no silver table: run `sgi ingest --file <export>` first")
+        silver = pd.read_parquet(pipeline.SILVER_ADMISSIONS)
+        if silver.source.str.startswith("synthetic").any():
+            raise SystemExit("silver table holds synthetic rows; ingest the real export first")
+        out = _check_private(out)
+        config.set_output_root(out)
+        config.DATA_MODE = "REAL"
+        plan = plan_real_run(silver, programmes, as_of_week)
+        programmes, excluded = plan["programmes"], plan["excluded"]
+        year, week = plan["year"], plan["week"]
+        validation_years, lockbox_years = plan["validation_years"], plan["lockbox_years"]
+        _copy_site_shell(out, real=True)
+    else:
+        if out is not None:
+            config.set_output_root(out)
+            _copy_site_shell(Path(out).resolve(), real=False)
+        registry.write_master(reg)
+        silver = pipeline.to_silver(pipeline.ingest())
+        year, week = config.LIVE_YEAR, config.LIVE_AS_OF_WEEK
+        validation_years, lockbox_years = config.VALIDATION_YEARS, config.LOCKBOX_YEARS
+    val, lock, champion, selection = run_backtests(silver, programmes, validation_years, lockbox_years, week)
     as_of = cycle_date(year, week)
 
     fc = live_forecast(silver, programmes, champion, year, week)
-    prev = engine.forecast(silver, programmes, year, week - 1, champion)
+    prev = engine.forecast(silver, programmes, year, max(week - 1, 0), champion)
     prev_map = {r["programme_id"]: r["p_meet_target"] for r in prev["programmes"]}
     for r in fc["programmes"]:
         r["p_change_wow"] = r["p_meet_target"] - prev_map[r["programme_id"]]
@@ -171,15 +243,16 @@ def run() -> dict:
         "meta": {"data_mode": config.DATA_MODE, "as_of": as_of.isoformat(), "year": year, "week": week,
                  "cycle_weeks": config.CYCLE_WEEKS, "champion": champion, "generated": date.today().isoformat(),
                  "admissions_health": health_score(fc),
-                 "admissions_health_prev": health_score(prev), "status_counts": status_counts},
+                 "admissions_health_prev": health_score(prev), "status_counts": status_counts,
+                 "excluded_programmes": excluded},
         "group": fc["rollups"],
         "programmes": fc["programmes"],
         "attention": [r["programme_id"] for r in sorted(items, key=lambda r: r["p_meet_target"])],
         "curves": curves,
         "backtest": {"selection": selection, "validation": vs.to_dict("records"), "lockbox": ls.to_dict("records"),
                      "validation_group": backtest.summary(val, group=True).drop(columns=["brier", "log_loss"]).to_dict("records"),
-                     "reliability": reliability, "validation_years": list(config.VALIDATION_YEARS),
-                     "lockbox_years": list(config.LOCKBOX_YEARS)},
+                     "reliability": reliability, "validation_years": list(validation_years),
+                     "lockbox_years": list(lockbox_years)},
         "loop": loop,
         "decisions": decisions,
         "entities": reg.to_dict("records"),

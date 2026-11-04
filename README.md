@@ -33,7 +33,7 @@ historical admissions → clean (silver) → programme forecast → seat-fill pr
 ```bash
 python -m venv .venv && source .venv/bin/activate
 make setup
-make test          # 33 tests: unit, leakage, forecasting
+make test          # 40 tests: unit, leakage, forecasting
 make all           # full loop → artifacts/ + site/data/
 make serve         # http://localhost:8000
 ```
@@ -43,6 +43,7 @@ CLI:
 ```bash
 sgi run | chairman-brief | registry | ingest | forecast admissions | risks | decisions | backtest
 sgi ingest --file export.csv [--finals finals.csv] [--dry-run]   # real admissions export → validated silver
+sgi run --real --out ~/sgi-private [--as-of-week N]             # forecast loop on it, private outputs only
 ```
 
 `sgi institution-health | simulate | benchmark | expansion-screen` are registered but intentionally exit with "planned".
@@ -69,7 +70,7 @@ sgi ingest --file export.csv [--finals finals.csv] [--dry-run]   # real admissio
 
 1. Update intakes in `configs/entities/programmes.csv` from the approval letters.
 2. Run `sgi ingest --file <export> --finals <registrar finals> --dry-run`. Fix every ERROR, review the WARNs, then run again without `--dry-run`. Accepted formats and rules are in [`docs/data_ingest.md`](docs/data_ingest.md).
-3. Forecasting on that silver table is the next build step. Real outputs go to a private deployment, never to public Pages (see [`docs/privacy_security.md`](docs/privacy_security.md)).
+3. Run `sgi run --real --out <private folder>`. The live week and backtest years are worked out from the data. Outputs never go into this repo or public Pages; the run refuses to write there (see [`docs/privacy_security.md`](docs/privacy_security.md)).
 
 ## Repository layout
 

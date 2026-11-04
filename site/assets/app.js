@@ -167,7 +167,7 @@ function viewForecasts() {
   <p class="lede">Final enrolment by programme, ${m.year} cycle, as of week ${m.week}. Campus and group totals are built by adding up programme draws, so the levels always agree. Select a row to see its enrolment curve.</p>
   <div class="panel" style="margin-bottom:14px">
     <div class="card-head"><h3>${esc(p.programme)} · ${esc(p.campus)} ${chip(p.status)}</h3>
-      <button class="btn" id="reveal" aria-pressed="${state.reveal}">${state.reveal ? "Hide" : "Reveal"} actual outcome</button></div>
+      ${d.loop.status === "CLOSED" ? `<button class="btn" id="reveal" aria-pressed="${state.reveal}">${state.reveal ? "Hide" : "Reveal"} actual outcome</button>` : ""}</div>
     ${curveChart(p)}
     <div class="legend"><span><i style="background:var(--accent)"></i>${m.year} to date</span><span><i style="background:var(--hist)"></i>prior cycles</span><span><i style="background:var(--band-50)"></i>50% range</span><span><i style="background:var(--band-90)"></i>90% range</span>${state.reveal ? '<span><i style="background:var(--green)"></i>actual (revealed)</span>' : ""}</div>
     <p class="muted" style="font-size:12px;margin:6px 0 0">Intake ${p.intake} (${esc(p.intake_source)}). ${p.intake_source === "PLACEHOLDER" ? "Sanctioned intake not yet verified: replace it with the regulator's approval letter." : ""}</p>
@@ -188,12 +188,12 @@ function viewForecasts() {
     tr.addEventListener("click", go);
     tr.addEventListener("keydown", (e) => e.key === "Enter" && go());
   });
-  document.getElementById("reveal").addEventListener("click", () => { state.reveal = !state.reveal; viewForecasts(); });
+  document.getElementById("reveal")?.addEventListener("click", () => { state.reveal = !state.reveal; viewForecasts(); });
 }
 
 function viewLoop() {
   const L = state.data.loop, m = state.data.meta;
-  if (L.status !== "CLOSED") { $app.innerHTML = `<h2>Loop closed</h2><p class="lede">${esc(L.message)}</p>`; return; }
+  if (L.status !== "CLOSED") { $app.innerHTML = `<h2>Loop open</h2><p class="lede">The week-${m.week} forecast is frozen in the lockbox. It will be scored here once the ${m.year} cycle closes: ${esc(L.message)}.</p>`; return; }
   let h = `<h2>Loop closed: frozen forecast vs actual</h2>
   <p class="lede">The week-${m.week} forecast was frozen in the prediction lockbox before the outcome was known, and is scored here against what actually happened. It is never re-run or overwritten.</p>
   <div class="kpis">

@@ -28,6 +28,7 @@ def run(silver: pd.DataFrame, programmes: pd.DataFrame, years, weeks=config.BACK
         for week in weeks:
             for model in MODELS:
                 samples = engine.programme_samples(silver, programmes, year, week, model, n=n)
+                samples = {pid: s for pid, s in samples.items() if pid in actual.index}  # programme not run that year
                 for pid, s in samples.items():
                     y = float(actual[pid])
                     p = float((s >= target[pid] - 1e-9).mean())

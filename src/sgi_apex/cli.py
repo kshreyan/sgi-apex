@@ -19,10 +19,14 @@ def _site():
     return brief.load_site()
 
 
-def cmd_run(_):
+def cmd_run(args):
     from sgi_apex.reporting import brief, build
-    site = build.run()
+    site = build.run(real=args.real, out=args.out, as_of_week=args.as_of_week)
     print(brief.write(site))
+    if args.out:
+        print(f"\noutputs: {config.ARTIFACTS} · site: {config.SITE} (serve with: python -m http.server -d {config.SITE})")
+    if site["meta"]["excluded_programmes"]:
+        print("not forecast (no data this cycle or no history):", ", ".join(site["meta"]["excluded_programmes"]))
 
 
 def cmd_brief(_):
@@ -121,7 +125,11 @@ def cmd_todo(name):
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="sgi", description="SGI APEX chairman intelligence system")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("run", help="run the full milestone-1 loop and build site data").set_defaults(fn=cmd_run)
+    run = sub.add_parser("run", help="run the full milestone-1 loop and build site data")
+    run.add_argument("--real", action="store_true", help="use the ingested export (sgi ingest --file) instead of demo data")
+    run.add_argument("--out", type=Path, help="private output folder (required with --real; outside the repo or under data/)")
+    run.add_argument("--as-of-week", type=int, help="real runs: forecast as of this cycle week (default: latest)")
+    run.set_defaults(fn=cmd_run)
     sub.add_parser("chairman-brief").set_defaults(fn=cmd_brief)
     sub.add_parser("registry", help="validate and print the entity registry").set_defaults(fn=cmd_registry)
     ing = sub.add_parser("ingest", help="synthetic demo data, or --file an admissions-office export")

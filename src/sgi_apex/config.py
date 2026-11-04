@@ -34,5 +34,20 @@ BACKTEST_WEEKS = (2, 6, 10, 14, 18, 22)
 N_SAMPLES = 4000
 SEED = 20261103
 
-# Synthetic-data flag shown everywhere a number appears.
+# Synthetic-data flag shown everywhere a number appears. Set to "REAL" by a run on an ingested export.
 DATA_MODE = "SYNTHETIC_DEMO"
+
+
+def set_output_root(root: Path) -> None:
+    """Redirect every run output (lockbox, register, reports, backtests, gold, site data) under ``root``.
+
+    Real-data runs must use this so nothing lands in the committed artifacts/ or the public site/.
+    """
+    global ARTIFACTS, FORECASTS, BACKTESTS, DECISIONS, SITE, GOLD
+    root = Path(root).resolve()
+    ARTIFACTS = root / "artifacts"
+    FORECASTS = ARTIFACTS / "forecasts"
+    BACKTESTS = ARTIFACTS / "backtests"
+    DECISIONS = ARTIFACTS / "decisions"
+    SITE = root / "site"
+    GOLD = root / "gold"
